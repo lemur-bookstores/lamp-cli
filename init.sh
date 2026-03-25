@@ -1,10 +1,10 @@
 #!/bin/bash
 # ============================================================
-# install.sh — LAMP Stack Modular CLI Installer
+# init.sh — LAMP Stack Modular CLI Installer
 #              Ubuntu 22.04 LTS — AWS Lightsail
 #
 # Usage:
-#   sudo ./install.sh [OPTIONS]
+#   sudo ./init.sh [OPTIONS]
 #
 # Each phase can also be run standalone:
 #   sudo ./phases/04_vhost.sh --domain example.com
@@ -21,7 +21,7 @@ usage() {
 ${BOLD}LAMP Stack CLI Installer — Ubuntu 22.04 LTS${RESET}
 
 USAGE:
-  sudo ./install.sh [OPTIONS] [--phases PHASE_LIST]
+  sudo ./init.sh [OPTIONS] [--phases PHASE_LIST]
 
 GLOBAL OPTIONS (all optional — will prompt if not provided):
   --domain          DOMAIN     Primary domain, no www (e.g. site.com)
@@ -54,10 +54,10 @@ AVAILABLE PHASES:
   9  File Transfer Service    (FTPS via VSFTPD or SFTP)
 
 EXAMPLES:
-  sudo ./install.sh
-  sudo ./install.sh --domain example.com --php-version 8.2 --phases all
-  sudo ./install.sh --phases 1,2,3 --swap-size 2G
-  sudo ./install.sh --domain site.com --db-name mydb --db-user myuser --phases 4,5
+  sudo ./init.sh
+  sudo ./init.sh --domain example.com --php-version 8.2 --phases all
+  sudo ./init.sh --phases 1,2,3 --swap-size 2G
+  sudo ./init.sh --domain site.com --db-name mydb --db-user myuser --phases 4,5
 
 EOF
     exit 0

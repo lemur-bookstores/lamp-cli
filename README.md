@@ -9,7 +9,7 @@ Modular LAMP installer with phase selection, named parameters, and interactive p
 
 ```
 lamp-cli/
-├── install.sh               ← Main orchestrator (entry point)
+├── init.sh               ← Main orchestrator (entry point)
 ├── lib/
 │   └── common.sh            ← Shared utilities (colors, logging, ask_param)
 └── phases/
@@ -37,7 +37,7 @@ lamp-cli/
 
 ```bash
 # Grant execute permissions (run once on the server)
-chmod +x install.sh phases/*.sh
+chmod +x init.sh phases/*.sh
 ```
 
 ---
@@ -74,7 +74,7 @@ chmod +x install.sh phases/*.sh
 The installer shows a phase menu and prompts for each missing value.
 
 ```bash
-sudo ./install.sh
+sudo ./init.sh
 ```
 
 **Example session flow:**
@@ -113,7 +113,7 @@ Enter phases (comma-separated, e.g. 1,2,3 or a): a
 Ideal for **automated provisioning scripts** (CI/CD, Lightsail user-data).
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --domain        training.example.com \
   --admin-email   admin@example.com \
   --db-name       moodle_db \
@@ -136,7 +136,7 @@ sudo ./install.sh \
 Useful to confirm the server, DNS, and ports are ready **before** installing anything.
 
 ```bash
-sudo ./install.sh --domain training.example.com --phases 1
+sudo ./init.sh --domain training.example.com --phases 1
 ```
 
 Or run directly as a standalone script:
@@ -159,10 +159,10 @@ For small servers (≤ 1 GB RAM) where `apt upgrade` can get OOM-killed.
 
 ```bash
 # 2 GB swap on nano instance
-sudo ./install.sh --swap-size 2G --phases 2
+sudo ./init.sh --swap-size 2G --phases 2
 
 # 4 GB swap on medium instance (recommended for Moodle)
-sudo ./install.sh --swap-size 4G --phases 2
+sudo ./init.sh --swap-size 4G --phases 2
 ```
 
 Or standalone:
@@ -177,10 +177,10 @@ sudo ./phases/02_system_prep.sh --swap-size 4G
 
 ```bash
 # PHP 8.2 (default)
-sudo ./install.sh --phases 3
+sudo ./init.sh --phases 3
 
 # PHP 8.3
-sudo ./install.sh --php-version 8.3 --phases 3
+sudo ./init.sh --php-version 8.3 --phases 3
 ```
 
 Or standalone:
@@ -196,7 +196,7 @@ sudo ./phases/03_lamp_install.sh --php-version 8.1
 ### Case 6 — Configure a Virtual Host for a Domain
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --domain      training.example.com \
   --php-version 8.2 \
   --php-handler fpm \
@@ -231,7 +231,7 @@ Apache config generated at:
 Typical workflow for staging where DNS doesn't point to the server yet.
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --domain      staging.example.com \
   --php-version 8.2 \
   --php-handler fpm \
@@ -246,7 +246,7 @@ sudo ./install.sh \
 ### Case 8 — Issue SSL Certificate (Once DNS Is Ready)
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --domain      training.example.com \
   --admin-email admin@example.com \
   --phases      6
@@ -271,7 +271,7 @@ sudo ./phases/06_ssl.sh \
 With recommended defaults:
 
 ```bash
-sudo ./install.sh --php-version 8.2 --phases 7
+sudo ./init.sh --php-version 8.2 --phases 7
 ```
 
 With custom values:
@@ -303,10 +303,10 @@ The script automatically calculates `innodb_buffer_pool_size` from actual server
 
 ```bash
 # 60% of RAM (recommended for dedicated database server)
-sudo ./install.sh --mariadb-ratio 60 --phases 8
+sudo ./init.sh --mariadb-ratio 60 --phases 8
 
 # 50% (recommended if Apache/PHP run on same server)
-sudo ./install.sh --mariadb-ratio 50 --phases 8
+sudo ./init.sh --mariadb-ratio 50 --phases 8
 ```
 
 **Example calculation on 2 GB RAM instance:**
@@ -324,7 +324,7 @@ sudo ./install.sh --mariadb-ratio 50 --phases 8
 Requires Phase 6 (SSL) to complete first. Uses the Let's Encrypt certificate.
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --domain   training.example.com \
   --ftp-mode ftps \
   --ftp-user ftpuser \
@@ -342,7 +342,7 @@ sudo ./install.sh \
 More secure — no extra service or TLS certificate needed. Uses existing port 22.
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --domain   training.example.com \
   --ftp-mode sftp \
   --ftp-user sftpuser \
@@ -381,7 +381,7 @@ sudo ./phases/05_database.sh \
 Conservative configuration for nano or micro Lightsail instances.
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --swap-size     4G \
   --php-version   8.2 \
   --php-handler   fpm \
@@ -423,7 +423,7 @@ Each vhost has its own directory:
 For simpler setups or development environments, use Apache's built-in mod_php:
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --domain      dev.example.com \
   --php-version 8.2 \
   --php-handler mod \
@@ -443,7 +443,7 @@ sudo ./install.sh \
 Host applications outside the standard `/var/www/vhosts` location:
 
 ```bash
-sudo ./install.sh \
+sudo ./init.sh \
   --domain      myapp.example.com \
   --vhost-root  /srv/apps/myapp \
   --php-version 8.2 \
