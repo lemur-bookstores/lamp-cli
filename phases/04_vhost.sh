@@ -73,8 +73,53 @@ log_success "VirtualHost config written."
 
 # ── 4.4 Maintenance placeholder ──────────────────────────────
 log_info "4.4  Creating maintenance placeholder page..."
-echo "<h2>Site under maintenance</h2>" | \
-    sudo tee "${VHOST_ROOT}/httpdocs/index.html" > /dev/null
+
+# Maintenance placeholder with template substitution
+TEMPLATE_PATH="${SCRIPT_DIR}/template/main_template.html"
+TARGET_INDEX="${VHOST_ROOT}/httpdocs/index.html"
+TARGET_IMG_DIR="${VHOST_ROOT}/httpdocs"
+
+# Default values
+SITE_NAME="${DOMAIN}"
+SITE_TITLE="Maintenance in progress"
+DESCRIPTION="We are experts in LMS configuration, maintenance, updates, and technical support. We are currently optimizing this server to provide you with the best e-learning experience. We'll be back online shortly."
+CORPORATE_SITE_URL="https://${DOMAIN}"
+VISIT_CORPORATE_SITE_TEXT="Visit our main site"
+UNDER_CONSTRUCTION_IMAGE_URL="https://${DOMAIN}"
+CURRENT_YEAR="$(date +%Y)"
+CORPORATE_SITE_NAME="${DOMAIN}"
+
+# Allow user overrides via env vars if set
+[[ -n "${MAINT_SITE_NAME:-}" ]] && SITE_NAME="$MAINT_SITE_NAME"
+[[ -n "${MAINT_SITE_TITLE:-}" ]] && SITE_TITLE="$MAINT_SITE_TITLE"
+[[ -n "${MAINT_DESCRIPTION:-}" ]] && DESCRIPTION="$MAINT_DESCRIPTION"
+[[ -n "${MAINT_CORPORATE_SITE_URL:-}" ]] && CORPORATE_SITE_URL="$MAINT_CORPORATE_SITE_URL"
+[[ -n "${MAINT_VISIT_CORPORATE_SITE_TEXT:-}" ]] && VISIT_CORPORATE_SITE_TEXT="$MAINT_VISIT_CORPORATE_SITE_TEXT"
+[[ -n "${MAINT_UNDER_CONSTRUCTION_IMAGE_URL:-}" ]] && UNDER_CONSTRUCTION_IMAGE_URL="$MAINT_UNDER_CONSTRUCTION_IMAGE_URL"
+[[ -n "${MAINT_CORPORATE_SITE_NAME:-}" ]] && CORPORATE_SITE_NAME="$MAINT_CORPORATE_SITE_NAME"
+
+# Substitute variables in template
+if [[ -f "$TEMPLATE_PATH" ]]; then
+    log_step "Generating index.html from template..."
+    sed -e "s|{{SITE_NAME}}|$SITE_NAME|g" \
+        -e "s|{{SITE_TITLE}}|$SITE_TITLE|g" \
+        -e "s|{{DESCRIPTION}}|$DESCRIPTION|g" \
+        -e "s|{{CORPORATE_SITE_URL}}|$CORPORATE_SITE_URL|g" \
+        -e "s|{{VISIT_CORPORATE_SITE_TEXT}}|$VISIT_CORPORATE_SITE_TEXT|g" \
+        -e "s|{{UNDER_CONSTRUCTION_IMAGE_URL}}|$UNDER_CONSTRUCTION_IMAGE_URL|g" \
+        -e "s|{{CURRENT_YEAR}}|$CURRENT_YEAR|g" \
+        -e "s|{{CORPORATE_SITE_NAME}}|$CORPORATE_SITE_NAME|g" \
+        "$TEMPLATE_PATH" | sudo tee "$TARGET_INDEX" > /dev/null
+    log_success "index.html generated from template."
+    # Copy vector.png if exists in template dir
+    if [[ -f "${SCRIPT_DIR}/template/vector.png" ]]; then
+        sudo cp "${SCRIPT_DIR}/template/vector.png" "$TARGET_IMG_DIR/"
+        log_success "vector.png copied to httpdocs."
+    fi
+else
+    log_warn "Template not found, using default minimal placeholder."
+    echo "<h2>Site under maintenance</h2>" | sudo tee "$TARGET_INDEX" > /dev/null
+fi
 
 # Final ownership: web server
 sudo chown -R www-data:www-data "${VHOST_ROOT}"
