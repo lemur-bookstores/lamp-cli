@@ -1,85 +1,87 @@
 # LAMP Stack CLI Installer
 ### Ubuntu 22.04 LTS — AWS Lightsail
 
-Instalador modular de LAMP con selección de fases, parámetros con nombre y prompts interactivos para los valores faltantes.
+Modular LAMP installer with phase selection, named parameters, and interactive prompts for missing values.
 
 ---
 
-## Estructura del proyecto
+## Project Structure
 
 ```
 lamp-cli/
-├── install.sh               ← Orquestador principal (punto de entrada)
+├── install.sh               ← Main orchestrator (entry point)
 ├── lib/
-│   └── common.sh            ← Utilidades compartidas (colores, logging, ask_param)
+│   └── common.sh            ← Shared utilities (colors, logging, ask_param)
 └── phases/
-    ├── 01_preflight.sh      ← Verificaciones previas (OS, RAM, DNS, puertos)
+    ├── 01_preflight.sh      ← Pre-flight checks (OS, RAM, DNS, ports)
     ├── 02_system_prep.sh    ← Swap + apt update/upgrade
     ├── 03_lamp_install.sh   ← Apache, PHP, MariaDB, Certbot, VSFTPD
-    ├── 04_vhost.sh          ← Virtual Host Apache
-    ├── 05_database.sh       ← Hardening MariaDB + base de datos y usuario
-    ├── 06_ssl.sh            ← Certificado Let's Encrypt (Certbot)
-    ├── 07_php_tuning.sh     ← Optimización php.ini
-    ├── 08_mariadb_tuning.sh ← Tuning InnoDB y parámetros de rendimiento
-    └── 09_file_transfer.sh  ← FTPS (VSFTPD) o SFTP (subsistema SSH)
+    ├── 04_vhost.sh          ← Apache Virtual Host configuration
+    ├── 05_database.sh       ← MariaDB hardening + database & user setup
+    ├── 06_ssl.sh            ← Let's Encrypt certificate (Certbot)
+    ├── 07_php_tuning.sh     ← PHP php.ini optimization
+    ├── 08_mariadb_tuning.sh ← InnoDB & performance tuning
+    └── 09_file_transfer.sh  ← FTPS (VSFTPD) or SFTP (SSH subsystem)
 ```
 
 ---
 
-## Requisitos previos
+## Prerequisites
 
-| Requisito          | Detalle                                                  |
+| Requirement        | Details                                                  |
 |--------------------|----------------------------------------------------------|
 | OS                 | Ubuntu 22.04 LTS                                         |
-| Privilegios        | `sudo` — la mayoría de las fases requieren permisos root |
-| DNS (Phase 6)      | Los registros A deben apuntar al servidor antes del SSL  |
-| Let's Encrypt (Phase 9 FTPS) | Phase 6 debe completarse antes de Phase 9 con `ftps` |
+| Privileges         | `sudo` — most phases require root permissions            |
+| DNS (Phase 6)      | A records must point to this server before SSL          |
+| Let's Encrypt (Phase 9 FTPS) | Phase 6 must complete before Phase 9 with `ftps` |
 
 ```bash
-# Otorgar permisos de ejecución (una sola vez, en el servidor)
+# Grant execute permissions (run once on the server)
 chmod +x install.sh phases/*.sh
 ```
 
 ---
 
-## Referencia rápida de parámetros
+## Parameters Quick Reference
 
-| Parámetro          | Variable             | Defecto  | Descripción                              |
+| Parameter          | Variable             | Default  | Description                              |
 |--------------------|----------------------|----------|------------------------------------------|
-| `--domain`         | `DOMAIN`             | —        | Dominio principal sin `www`              |
-| `--admin-email`    | `ADMIN_EMAIL`        | —        | Email para alertas de expiración SSL     |
-| `--db-name`        | `DB_NAME`            | —        | Nombre de la base de datos               |
-| `--db-user`        | `DB_USER`            | —        | Usuario de la base de datos              |
-| `--db-pass`        | `DB_PASS`            | —        | Contraseña (prompt oculto si se omite)   |
-| `--php-version`    | `PHP_VERSION`        | `8.2`    | Versión de PHP a instalar                |
-| `--swap-size`      | `SWAP_SIZE`          | `4G`     | Tamaño del archivo de swap               |
-| `--ftp-mode`       | `FTP_MODE`           | `ftps`   | Modo de transferencia: `ftps` o `sftp`   |
-| `--ftp-user`       | `FTP_USER`           | —        | Usuario FTP/SFTP                         |
-| `--ftp-pass`       | `FTP_PASS`           | —        | Contraseña FTP/SFTP (prompt oculto)      |
-| `--mariadb-ratio`  | `MARIADB_BUFFER_RATIO` | `60`   | % de RAM para InnoDB buffer pool (50–70) |
-| `--phases`         | —                    | (menú)   | Fases a ejecutar, ej: `1,2,3` o `all`   |
+| `--domain`         | `DOMAIN`             | —        | Primary domain, no www                   |
+| `--admin-email`    | `ADMIN_EMAIL`        | —        | Email for SSL expiry alerts              |
+| `--db-name`        | `DB_NAME`            | —        | Database name                            |
+| `--db-user`        | `DB_USER`            | —        | Database username                        |
+| `--db-pass`        | `DB_PASS`            | —        | Database password (hidden prompt)        |
+| `--php-version`    | `PHP_VERSION`        | `8.2`    | PHP version to install                   |
+| `--php-handler`    | `PHP_HANDLER`        | `fpm`    | PHP handler: `fpm` or `mod`              |
+| `--vhost-root`     | `VHOST_ROOT`         | `/var/www/vhosts/DOMAIN` | Absolute DocumentRoot |
+| `--swap-size`      | `SWAP_SIZE`          | `4G`     | Swap file size                           |
+| `--ftp-mode`       | `FTP_MODE`           | `ftps`   | Transfer mode: `ftps` or `sftp`          |
+| `--ftp-user`       | `FTP_USER`           | —        | FTP/SFTP username                        |
+| `--ftp-pass`       | `FTP_PASS`           | —        | FTP/SFTP password (hidden prompt)        |
+| `--mariadb-ratio`  | `MARIADB_BUFFER_RATIO` | `60`   | InnoDB buffer % of RAM (50–70)          |
+| `--phases`         | —                    | (menu)   | Phases to run, e.g. `1,2,3` or `all`   |
 
-> Cualquier parámetro omitido activa un **prompt interactivo**. Los parámetros de contraseña siempre usan entrada oculta con confirmación cuando se ingresan de forma interactiva.
-
----
-
-## Casos de uso
+> Any omitted parameter triggers an **interactive prompt**. Password parameters always use hidden input with confirmation.
 
 ---
 
-### Caso 1 — Instalación completa (modo interactivo)
+## Use Cases
 
-El instalador muestra un menú de fases y solicita cada valor que falte.
+---
+
+### Case 1 — Full Installation (Interactive Mode)
+
+The installer shows a phase menu and prompts for each missing value.
 
 ```bash
 sudo ./install.sh
 ```
 
-**Flujo de sesión de ejemplo:**
+**Example session flow:**
 
 ```
 ══════════════════════════════════════════════
-  Selecciona las fases a ejecutar:
+  Select which phases to run:
 
   [1] Pre-Flight Checks
   [2] System Preparation (swap, apt)
@@ -106,9 +108,9 @@ Enter phases (comma-separated, e.g. 1,2,3 or a): a
 
 ---
 
-### Caso 2 — Instalación completa con todos los parámetros en línea de comandos
+### Case 2 — Full Installation with All Parameters in Command Line
 
-Ideal para **scripts de aprovisionamiento automatizado** (CI/CD, user-data de Lightsail).
+Ideal for **automated provisioning scripts** (CI/CD, Lightsail user-data).
 
 ```bash
 sudo ./install.sh \
@@ -118,6 +120,7 @@ sudo ./install.sh \
   --db-user       moodleuser \
   --db-pass       "S3cur3P@ssw0rd!" \
   --php-version   8.2 \
+  --php-handler   fpm \
   --swap-size     4G \
   --ftp-mode      ftps \
   --ftp-user      ftpuser \
@@ -128,41 +131,41 @@ sudo ./install.sh \
 
 ---
 
-### Caso 3 — Solo verificaciones previas (diagnóstico del servidor)
+### Case 3 — Pre-Flight Checks Only (Server Diagnostics)
 
-Útil para confirmar que el servidor, el DNS y los puertos están listos **antes** de instalar nada.
+Useful to confirm the server, DNS, and ports are ready **before** installing anything.
 
 ```bash
 sudo ./install.sh --domain training.example.com --phases 1
 ```
 
-O directamente como script independiente:
+Or run directly as a standalone script:
 
 ```bash
 sudo ./phases/01_preflight.sh --domain training.example.com
 ```
 
-**Qué verifica:**
-- Versión de OS y usuario actual
-- RAM total y espacio en disco
-- IP pública vs. resolución DNS del dominio
-- Puertos 80, 443, 21, 22 en uso
+**What it checks:**
+- OS version and current user
+- Total RAM and disk space
+- Public IP vs. DNS domain resolution
+- Ports 80, 443, 21, 22 in use
 
 ---
 
-### Caso 4 — Preparación del sistema (swap + actualizaciones)
+### Case 4 — System Preparation (Swap + Updates)
 
-Para servidores pequeños (≤ 1 GB RAM) donde `apt upgrade` puede terminar el proceso por OOM.
+For small servers (≤ 1 GB RAM) where `apt upgrade` can get OOM-killed.
 
 ```bash
-# Swap de 2 GB en instancia nano
+# 2 GB swap on nano instance
 sudo ./install.sh --swap-size 2G --phases 2
 
-# Swap de 4 GB en instancia medium (recomendado para Moodle)
+# 4 GB swap on medium instance (recommended for Moodle)
 sudo ./install.sh --swap-size 4G --phases 2
 ```
 
-O standalone:
+Or standalone:
 
 ```bash
 sudo ./phases/02_system_prep.sh --swap-size 4G
@@ -170,65 +173,68 @@ sudo ./phases/02_system_prep.sh --swap-size 4G
 
 ---
 
-### Caso 5 — Solo instalar el stack LAMP (sin configurar nada más)
+### Case 5 — Install LAMP Stack Only (No Additional Configuration)
 
 ```bash
-# PHP 8.2 (por defecto)
+# PHP 8.2 (default)
 sudo ./install.sh --phases 3
 
 # PHP 8.3
 sudo ./install.sh --php-version 8.3 --phases 3
 ```
 
-O standalone:
+Or standalone:
 
 ```bash
 sudo ./phases/03_lamp_install.sh --php-version 8.1
 ```
 
-**Paquetes instalados:** Apache 2, MariaDB, PHP + extensiones (fpm, cli, mysql, zip, ldap, xml, gd, curl, tidy, mbstring, intl, soap, imagick), Certbot, VSFTPD.
+**Packages installed:** Apache 2, MariaDB, PHP + extensions (fpm/mod_php, cli, mysql, zip, ldap, xml, gd, curl, tidy, mbstring, intl, soap, imagick), Certbot, VSFTPD.
 
 ---
 
-### Caso 6 — Configurar un Virtual Host para un dominio
+### Case 6 — Configure a Virtual Host for a Domain
 
 ```bash
 sudo ./install.sh \
   --domain      training.example.com \
   --php-version 8.2 \
+  --php-handler fpm \
   --phases      4
 ```
 
-O standalone:
+Or standalone:
 
 ```bash
 sudo ./phases/04_vhost.sh \
   --domain      training.example.com \
-  --php-version 8.2
+  --php-version 8.2 \
+  --php-handler fpm
 ```
 
-**Resultado:**
+**Result:**
 ```
 /var/www/vhosts/training.example.com/
-├── httpdocs/        ← DocumentRoot (propietario: www-data)
+├── httpdocs/        ← DocumentRoot (owner: www-data)
 └── logs/
     ├── access.log
     └── error.log
 ```
 
-Config Apache generada en:
+Apache config generated at:
 `/etc/apache2/sites-available/training.example.com.conf`
 
 ---
 
-### Caso 7 — Instalar stack + Virtual Host + Base de datos (sin SSL aún)
+### Case 7 — Install Stack + Virtual Host + Database (No SSL Yet)
 
-Flujo típico para un ambiente de staging donde el DNS aún no apunta al servidor.
+Typical workflow for staging where DNS doesn't point to the server yet.
 
 ```bash
 sudo ./install.sh \
   --domain      staging.example.com \
   --php-version 8.2 \
+  --php-handler fpm \
   --db-name     moodle_db \
   --db-user     moodleuser \
   --db-pass     "S3cur3P@ss!" \
@@ -237,7 +243,7 @@ sudo ./install.sh \
 
 ---
 
-### Caso 8 — Emitir certificado SSL (una vez el DNS está listo)
+### Case 8 — Issue SSL Certificate (Once DNS Is Ready)
 
 ```bash
 sudo ./install.sh \
@@ -246,7 +252,7 @@ sudo ./install.sh \
   --phases      6
 ```
 
-O standalone:
+Or standalone:
 
 ```bash
 sudo ./phases/06_ssl.sh \
@@ -254,21 +260,21 @@ sudo ./phases/06_ssl.sh \
   --admin-email admin@example.com
 ```
 
-> El script verifica automáticamente que el DNS resuelva al IP del servidor antes de llamar a Certbot. Si no coincide, **aborta** con un mensaje de error claro en lugar de consumir el rate-limit de Let's Encrypt.
+> The script automatically verifies that DNS resolves to the server's IP before calling Certbot. If it doesn't match, it **aborts** with a clear error message instead of consuming your Let's Encrypt rate limit.
 
-**Renovación automática:** cron cada 12 horas — configurado automáticamente.
+**Auto-renewal:** cron every 12 hours — configured automatically.
 
 ---
 
-### Caso 9 — Optimizar PHP para Moodle / LMS
+### Case 9 — Optimize PHP for Moodle / LMS
 
-Con los valores recomendados por defecto:
+With recommended defaults:
 
 ```bash
 sudo ./install.sh --php-version 8.2 --phases 7
 ```
 
-Con valores personalizados:
+With custom values:
 
 ```bash
 sudo ./phases/07_php_tuning.sh
@@ -281,41 +287,41 @@ sudo ./phases/07_php_tuning.sh
 #   max_input_time [250]: 300
 ```
 
-| Directiva            | Valor por defecto | Mínimo recomendado Moodle |
-|----------------------|-------------------|---------------------------|
-| `max_input_vars`     | 5000              | 5000                      |
-| `max_execution_time` | 250               | 160                       |
-| `post_max_size`      | 50M               | 50M                       |
-| `upload_max_filesize`| 50M               | 50M                       |
-| `max_input_time`     | 250               | 120                       |
+| Directive            | Default Value | Moodle Recommended |
+|----------------------|----------------|--------------------|
+| `max_input_vars`     | 5000           | 5000+              |
+| `max_execution_time` | 250s           | 160s+              |
+| `post_max_size`      | 50M            | 50M+               |
+| `upload_max_filesize`| 50M            | 50M+               |
+| `max_input_time`     | 250s           | 120s+              |
 
 ---
 
-### Caso 10 — Tuning de MariaDB según la RAM del servidor
+### Case 10 — Tune MariaDB Based on Server RAM
 
-El script calcula automáticamente `innodb_buffer_pool_size` en función de la RAM real del servidor.
+The script automatically calculates `innodb_buffer_pool_size` from actual server RAM.
 
 ```bash
-# 60% de la RAM (recomendado para servidor dedicado a base de datos)
+# 60% of RAM (recommended for dedicated database server)
 sudo ./install.sh --mariadb-ratio 60 --phases 8
 
-# 50% (recomendado si Apache/PHP conviven en el mismo servidor)
+# 50% (recommended if Apache/PHP run on same server)
 sudo ./install.sh --mariadb-ratio 50 --phases 8
 ```
 
-**Ejemplo de cálculo en instancia de 2 GB RAM:**
+**Example calculation on 2 GB RAM instance:**
 
-| Variable                   | Cálculo           | Resultado |
-|----------------------------|-------------------|-----------|
+| Variable                   | Calculation       | Result |
+|----------------------------|-------------------|--------|
 | `RAM_TOTAL_MB`             | `free -m`         | 2048 MB   |
-| `MARIADB_BUFFER_RATIO`     | configurado       | 60%       |
+| `MARIADB_BUFFER_RATIO`     | user config       | 60%       |
 | `innodb_buffer_pool_size`  | 2048 × 60 / 100   | **1228 MB** |
 
 ---
 
-### Caso 11 — Servicio de transferencia de archivos: FTPS (VSFTPD + TLS)
+### Case 11 — File Transfer: FTPS (VSFTPD + TLS)
 
-Requiere que la fase 6 (SSL) haya completado. Usa el certificado de Let's Encrypt.
+Requires Phase 6 (SSL) to complete first. Uses the Let's Encrypt certificate.
 
 ```bash
 sudo ./install.sh \
@@ -326,14 +332,14 @@ sudo ./install.sh \
   --phases   9
 ```
 
-**Conexión:** Puerto 21, Explicit TLS (FileZilla, WinSCP).  
-**Puertos pasivos:** 49152–65535 TCP (deben abrirse en el firewall de Lightsail).
+**Connection:** Port 21, Explicit TLS (FileZilla, WinSCP).  
+**Passive ports:** 49152–65535 TCP (must open in Lightsail firewall).
 
 ---
 
-### Caso 12 — Servicio de transferencia de archivos: SFTP (subsistema SSH)
+### Case 12 — File Transfer: SFTP (SSH Subsystem)
 
-Más seguro — no requiere servicio adicional ni certificado TLS. Usa el puerto 22 existente.
+More secure — no extra service or TLS certificate needed. Uses existing port 22.
 
 ```bash
 sudo ./install.sh \
@@ -344,14 +350,14 @@ sudo ./install.sh \
   --phases   9
 ```
 
-**Conexión:** Puerto 22, protocolo SFTP (FileZilla, WinSCP, Cyberduck).  
-El usuario queda **enjaulado (chroot)** en `/var/www/vhosts/<domain>`.
+**Connection:** Port 22, SFTP protocol (FileZilla, WinSCP, Cyberduck).  
+User is **chrooted** to `/var/www/vhosts/<domain>`.
 
 ---
 
-### Caso 13 — Reinstalar o reconfigurar una sola fase sin tocar las demás
+### Case 13 — Reconfigure a Single Phase Without Touching Others
 
-Ejemplo: el certificado SSL expiró o hubo un error, y solo se necesita re-emitir:
+Example: SSL certificate expired or error, re-issue it:
 
 ```bash
 sudo ./phases/06_ssl.sh \
@@ -359,61 +365,104 @@ sudo ./phases/06_ssl.sh \
   --admin-email admin@example.com
 ```
 
-Ejemplo: cambiar la contraseña de la base de datos:
+Example: change database password:
 
 ```bash
 sudo ./phases/05_database.sh \
   --db-name moodle_db \
   --db-user moodleuser \
-  --db-pass "NuevaContraseña2025!"
+  --db-pass "NewPassword2025!"
 ```
 
 ---
 
-### Caso 14 — Servidor con poca RAM (512 MB / 1 GB)
+### Case 14 — Low-Memory Server (512 MB / 1 GB)
 
-Configuración conservadora para instancias nano o micro de Lightsail.
+Conservative configuration for nano or micro Lightsail instances.
 
 ```bash
 sudo ./install.sh \
   --swap-size     4G \
   --php-version   8.2 \
+  --php-handler   fpm \
   --mariadb-ratio 50 \
   --phases        2,3,4,5,6,7,8
 ```
 
-> El swap se configura en la fase 2, **antes** que el apt upgrade, para evitar OOM kills.
+> Swap is configured in phase 2, **before** apt upgrade, to prevent OOM kills.
 
 ---
 
-### Caso 15 — Múltiples dominios en el mismo servidor
+### Case 15 — Multiple Domains on One Server
 
-Ejecutar la fase 4 varias veces, una por dominio:
+Run phase 4 multiple times, once per domain:
 
 ```bash
-# Primer dominio
-sudo ./phases/04_vhost.sh --domain sitio-a.com --php-version 8.2
+# First domain
+sudo ./phases/04_vhost.sh --domain site-a.com --php-version 8.2
 
-# Segundo dominio
-sudo ./phases/04_vhost.sh --domain sitio-b.com --php-version 8.2
+# Second domain
+sudo ./phases/04_vhost.sh --domain site-b.com --php-version 8.2
 
-# SSL para cada dominio
-sudo ./phases/06_ssl.sh --domain sitio-a.com --admin-email admin@sitio-a.com
-sudo ./phases/06_ssl.sh --domain sitio-b.com --admin-email admin@sitio-b.com
+# SSL for each domain
+sudo ./phases/06_ssl.sh --domain site-a.com --admin-email admin@site-a.com
+sudo ./phases/06_ssl.sh --domain site-b.com --admin-email admin@site-b.com
 ```
 
-Cada vhost tiene su propia estructura:
+Each vhost has its own directory:
 ```
 /var/www/vhosts/
-├── sitio-a.com/httpdocs/
-└── sitio-b.com/httpdocs/
+├── site-a.com/httpdocs/
+└── site-b.com/httpdocs/
 ```
 
 ---
 
-## Confirmación JSON por fase
+### Case 16 — Using mod_php Instead of PHP-FPM
 
-Cada fase emite un bloque JSON al finalizar, útil para pipelines automatizados o auditoría:
+For simpler setups or development environments, use Apache's built-in mod_php:
+
+```bash
+sudo ./install.sh \
+  --domain      dev.example.com \
+  --php-version 8.2 \
+  --php-handler mod \
+  --phases      3,4,7
+```
+
+**Differences with mod_php:**
+- Single PHP version per server (no multi-version support)
+- PHP runs inside Apache process (no separate service)
+- Simpler but less flexible than FPM
+- Better for development/testing, not recommended for production
+
+---
+
+### Case 17 — Custom DocumentRoot Path
+
+Host applications outside the standard `/var/www/vhosts` location:
+
+```bash
+sudo ./install.sh \
+  --domain      myapp.example.com \
+  --vhost-root  /srv/apps/myapp \
+  --php-version 8.2 \
+  --php-handler fpm \
+  --phases      4
+```
+
+**Result:**
+```
+/srv/apps/myapp/
+├── httpdocs/        ← Apache DocumentRoot
+└── logs/
+```
+
+---
+
+## JSON Confirmation Output
+
+Each phase outputs a JSON block on completion, useful for automated pipelines or audit trails:
 
 ```json
 {
@@ -423,6 +472,7 @@ Cada fase emite un bloque JSON al finalizar, útil para pipelines automatizados 
     "domain": "training.example.com",
     "root_path": "/var/www/vhosts/training.example.com/httpdocs",
     "php_version": "8.2",
+    "php_handler": "fpm",
     "config_path": "/etc/apache2/sites-available/training.example.com.conf",
     "config_syntax_test": "Syntax OK",
     "apache_status": "active",
@@ -431,17 +481,17 @@ Cada fase emite un bloque JSON al finalizar, útil para pipelines automatizados 
 }
 ```
 
-> Las contraseñas nunca aparecen en el JSON — se muestran como `"(hidden)"`.
+> Passwords never appear in JSON output — shown as `"(hidden)"`.
 
 ---
 
-## Solución de problemas
+## Troubleshooting
 
-| Síntoma | Causa probable | Solución |
-|---------|---------------|----------|
-| Phase 6 falla: DNS mismatch | DNS no apunta al servidor | Actualizar registro A y esperar propagación |
-| Phase 9 FTPS falla: cert not found | Phase 6 no se ejecutó | Ejecutar `./phases/06_ssl.sh` primero |
-| `php.ini` no refleja cambios | FPM no se reinició | `sudo systemctl restart php8.2-fpm` |
-| MariaDB no inicia tras Phase 8 | `innodb_log_file_size` incompatible | Revisar `/var/log/mysql/error.log` |
-| Conexión FTP rechazada (modo pasivo) | Puerto pasivo cerrado | Abrir 49152–65535 TCP en Lightsail firewall |
-| `ask_param` no solicita un campo | Variable ya exportada en el shell | `unset VARIABLE` y volver a ejecutar |
+| Symptom | Likely Cause | Solution |
+|---------|--------------|----------|
+| Phase 6 fails: DNS mismatch | DNS doesn't point to server | Update A record and wait for propagation |
+| Phase 9 FTPS fails: cert not found | Phase 6 didn't complete | Run `./phases/06_ssl.sh` first |
+| Changes to `php.ini` not reflected | FPM/Apache not restarted | `sudo systemctl restart php8.2-fpm` and `sudo systemctl restart apache2` |
+| MariaDB won't start after Phase 8 | `innodb_log_file_size` incompatible | Check `/var/log/mysql/error.log` |
+| FTP connection refused (passive mode) | Passive port range closed | Open 49152–65535 TCP in Lightsail firewall |
+| `ask_param` doesn't prompt for value | Variable already exported in shell | `unset VARIABLE` and re-run |
