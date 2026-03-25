@@ -9,9 +9,17 @@
 # Each phase can also be run standalone:
 #   sudo ./phases/04_vhost.sh --domain example.com
 # ============================================================
+
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the real script directory, even if called via symlink
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
 # ── Usage / help ──────────────────────────────────────────────
