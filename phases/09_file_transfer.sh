@@ -15,10 +15,11 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     source "${SCRIPT_DIR}/lib/common.sh"
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --domain)   export DOMAIN="$2";   shift 2 ;;
-            --ftp-mode) export FTP_MODE="$2"; shift 2 ;;
-            --ftp-user) export FTP_USER="$2"; shift 2 ;;
-            --ftp-pass) export FTP_PASS="$2"; shift 2 ;;
+            --domain)     export DOMAIN="$2";     shift 2 ;;
+            --ftp-mode)   export FTP_MODE="$2";   shift 2 ;;
+            --ftp-user)   export FTP_USER="$2";   shift 2 ;;
+            --ftp-pass)   export FTP_PASS="$2";   shift 2 ;;
+            --vhost-root) export VHOST_ROOT="$2"; shift 2 ;;
             *) shift ;;
         esac
     done
@@ -36,8 +37,7 @@ fi
 
 ask_param    FTP_USER "Transfer username"   ""
 ask_password FTP_PASS "Transfer password"
-
-VHOST_ROOT="/var/www/vhosts/${DOMAIN}"
+ask_param_optional VHOST_ROOT "Chroot / vhost root path" "/var/www/vhosts/${DOMAIN}"
 
 # ── 9.1 Create transfer user ──────────────────────────────────
 log_info "9.1  Creating transfer user '${FTP_USER}'..."

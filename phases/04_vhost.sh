@@ -14,6 +14,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
         case "$1" in
             --domain)      export DOMAIN="$2";      shift 2 ;;
             --php-version) export PHP_VERSION="$2"; shift 2 ;;
+            --php-handler) export PHP_HANDLER="$2"; shift 2 ;;
+            --vhost-root)  export VHOST_ROOT="$2";  shift 2 ;;
             *) shift ;;
         esac
     done
@@ -22,8 +24,9 @@ fi
 # ── Parameters ────────────────────────────────────────────────
 ask_param          DOMAIN      "Primary domain (no www)"           ""
 ask_param_optional PHP_VERSION "PHP version (must match Phase 3)"  "8.2"
+ask_param_optional PHP_HANDLER "PHP handler (fpm or mod)"          "fpm"
+ask_param_optional VHOST_ROOT  "Document root (absolute path)"     "/var/www/vhosts/${DOMAIN}"
 
-VHOST_ROOT="/var/www/vhosts/${DOMAIN}"
 VHOST_CONF="/etc/apache2/sites-available/${DOMAIN}.conf"
 
 # ── 4.1 Directory structure ───────────────────────────────────
@@ -39,6 +42,16 @@ sudo chmod -R 755 "${VHOST_ROOT}"
 
 # ── 4.3 VirtualHost config ────────────────────────────────────
 log_info "4.3  Writing Apache VirtualHost config to ${VHOST_CONF}..."
+
+# Build PHP handler directive (FPM uses a unix socket; mod_php needs no extra directive)
+if [[ "${PHP_HANDLER:-fpm}" == "fpm" ]]; then
+    PHP_HANDLER_BLOCK="    <FilesMatch \\.php\$>
+        SetHandler \"proxy:unix:/run/php/php${PHP_VERSION}-fpm.sock|fcgi://localhost\"
+    </FilesMatch>"
+else
+    PHP_HANDLER_BLOCK=""
+fi
+
 sudo tee "${VHOST_CONF}" > /dev/null <<APACHECONF
 <VirtualHost *:80>
     ServerName ${DOMAIN}
@@ -53,10 +66,7 @@ sudo tee "${VHOST_CONF}" > /dev/null <<APACHECONF
 
     ErrorLog  ${VHOST_ROOT}/logs/error.log
     CustomLog ${VHOST_ROOT}/logs/access.log combined
-
-    <FilesMatch \.php$>
-        SetHandler "proxy:unix:/run/php/php${PHP_VERSION}-fpm.sock|fcgi://localhost"
-    </FilesMatch>
+${PHP_HANDLER_BLOCK}
 </VirtualHost>
 APACHECONF
 log_success "VirtualHost config written."
@@ -101,6 +111,7 @@ phase_json "$(cat <<EOF
     "domain": "${DOMAIN}",
     "root_path": "${VHOST_ROOT}/httpdocs",
     "php_version": "${PHP_VERSION}",
+    "php_handler": "${PHP_HANDLER}",
     "config_path": "${VHOST_CONF}",
     "config_syntax_test": "Syntax OK",
     "apache_status": "active",
