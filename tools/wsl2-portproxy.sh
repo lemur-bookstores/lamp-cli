@@ -6,6 +6,11 @@
 # ==============================================================================
 
 set -e
+# --- Ensure netstat (net-tools) is installed ---
+if ! command -v netstat >/dev/null 2>&1; then
+    echo -e "${YELLOW}[!] net-tools no está instalado. Instalando...${NC}"
+    sudo apt update && sudo apt install -y net-tools
+fi
 
 # --- Colors ---
 GREEN='\033[0;32m'
