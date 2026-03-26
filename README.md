@@ -495,3 +495,54 @@ Each phase outputs a JSON block on completion, useful for automated pipelines or
 | MariaDB won't start after Phase 8 | `innodb_log_file_size` incompatible | Check `/var/log/mysql/error.log` |
 | FTP connection refused (passive mode) | Passive port range closed | Open 49152–65535 TCP in Lightsail firewall |
 | `ask_param` doesn't prompt for value | Variable already exported in shell | `unset VARIABLE` and re-run |
+
+---
+
+## WSL2 Port Proxy (Windows Only)
+
+> **Only relevant if you are running this CLI on Windows via WSL2.**  
+> Native Linux servers and cloud environments (AWS Lightsail, etc.) do not need this.
+
+WSL2 runs inside an isolated virtual machine with its own network interface — ports exposed
+inside WSL2 are **not automatically reachable from your Windows browser**. This means
+`http://myapp.test` or `http://localhost:80` won't work out of the box after running lamp-cli.
+
+The `lamp-cli portproxy` subcommand solves this by automating the full bridge:
+detects your WSL2 IP, creates a Windows port proxy via `netsh`, and manages the
+firewall rule — all from a single command inside your WSL2 terminal.
+
+### Quick start
+```bash
+# Forward port 80 (Apache default) — triggers a Windows UAC popup
+lamp-cli portproxy
+
+# Forward a custom port
+lamp-cli portproxy -p 3000
+
+# List all active proxies
+lamp-cli portproxy -l
+
+# Remove a proxy
+lamp-cli portproxy -p 80 -d
+```
+
+### After a WSL2 restart
+
+WSL2 assigns a **new internal IP on every restart**, which breaks existing proxy entries.
+Re-run the command after each `wsl --shutdown` to update the mapping:
+```bash
+lamp-cli portproxy -p 80
+```
+
+### Access via custom domain
+
+Once the proxy is active, add your domain to the Windows hosts file
+(`disk:\Windows\System32\drivers\etc\hosts`) as Administrator:
+```
+127.0.0.1   myapp.test
+```
+
+Then open `http://myapp.test` in your Windows browser.
+
+For full documentation, options reference, and troubleshooting:
+→ [`tools/README.md`](tools/README.md)
