@@ -4,10 +4,10 @@
 #              Ubuntu 22.04 LTS — AWS Lightsail
 #
 # Usage:
-#   sudo ./init.sh [OPTIONS]
+#   sudo lamp-cli [OPTIONS]
 #
 # Each phase can also be run standalone:
-#   sudo ./phases/04_vhost.sh --domain example.com
+#   sudo lamp-cli --phases 4,5
 # ============================================================
 
 set -euo pipefail
@@ -22,6 +22,32 @@ done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
+
+# ── Subcommand routing ────────────────────────────────────────
+# Allow: lamp-cli <subcommand> [args...]
+# Example: lamp-cli portproxy -p 8080
+#          lamp-cli portproxy -l
+#          lamp-cli portproxy -p 3000 -d
+SUBCOMMAND="${1:-}"
+
+case "$SUBCOMMAND" in
+    portproxy)
+        shift  # remove 'portproxy' from args
+        PROXY_SCRIPT="${SCRIPT_DIR}/tools/wsl2-portproxy.sh"
+
+        if [[ ! -f "$PROXY_SCRIPT" ]]; then
+            log_error "Script not found: ${PROXY_SCRIPT}"
+            exit 1
+        fi
+
+        chmod +x "$PROXY_SCRIPT"
+        exec bash "$PROXY_SCRIPT" "$@"
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+esac
+
 # ── Usage / help ──────────────────────────────────────────────
 usage() {
     cat <<EOF
@@ -29,7 +55,25 @@ usage() {
 ${BOLD}LAMP Stack CLI Installer — Ubuntu 22.04 LTS${RESET}
 
 USAGE:
-  sudo ./init.sh [OPTIONS] [--phases PHASE_LIST]
+  sudo lamp-cli [OPTIONS] [--phases PHASE_LIST]
+  sudo lamp-cli <subcommand> [args]
+
+${BOLD}SUBCOMMANDS:${RESET}
+  portproxy               WSL2 ↔ Windows port proxy manager
+
+  portproxy options:
+    -p <port>             Forward the specified port  (default: 80)
+    -l                    List all active port proxies
+    -d                    Delete proxy for the specified port
+    -h                    Show portproxy help
+
+  Examples:
+    sudo lamp-cli portproxy                  # Forward port 80
+    sudo lamp-cli portproxy -p 3000          # Forward port 3000
+    sudo lamp-cli portproxy -l               # List active proxies
+    sudo lamp-cli portproxy -p 8080 -d       # Remove port 8080
+
+${BOLD}GLOBAL OPTIONS:${RESET}
 
 GLOBAL OPTIONS (all optional — will prompt if not provided):
   --domain          DOMAIN     Primary domain, no www (e.g. site.com)
@@ -62,10 +106,10 @@ AVAILABLE PHASES:
   9  File Transfer Service    (FTPS via VSFTPD or SFTP)
 
 EXAMPLES:
-  sudo ./init.sh
-  sudo ./init.sh --domain example.com --php-version 8.2 --phases all
-  sudo ./init.sh --phases 1,2,3 --swap-size 2G
-  sudo ./init.sh --domain site.com --db-name mydb --db-user myuser --phases 4,5
+  sudo lamp-cli
+  sudo lamp-cli --domain example.com --php-version 8.2 --phases all
+  sudo lamp-cli --phases 1,2,3 --swap-size 2G
+  sudo lamp-cli --domain site.com --db-name mydb --db-user myuser --phases 4,5
 
 EOF
     exit 0

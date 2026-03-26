@@ -1,12 +1,12 @@
 #!/bin/bash
 # ============================================================
-# install-global.sh — Install lamp-cli Globally
+# setup-cli.sh — Install lamp-cli Globally
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/lemur-bookstores/lamp-cli/main/install-global.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/lemur-bookstores/lamp-cli/main/setup-cli.sh | sudo bash
 #
 # Or:
-#   sudo bash install-global.sh [INSTALL_DIR]
+#   sudo bash setup-cli.sh [INSTALL_DIR]
 #
 # Environment Variables:
 #   INSTALL_DIR — Installation directory (default: /opt/lamp-cli)
@@ -120,6 +120,13 @@ fi
 if [[ -d "${INSTALL_DIR}/lib" ]]; then
     find "${INSTALL_DIR}/lib" -name "*.sh" -exec chmod +x {} \; || {
         log_error "Failed to chmod lib scripts"
+        exit 1
+    }
+fi
+
+if [[ -d "${INSTALL_DIR}/wsl-port_proxy" ]]; then
+    find "${INSTALL_DIR}/wsl-port_proxy" -name "*.sh" -exec chmod +x {} \; || {
+        log_error "Failed to chmod wsl-port_proxy scripts"
         exit 1
     }
 fi

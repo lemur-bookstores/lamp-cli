@@ -82,12 +82,12 @@ TARGET_IMG_DIR="${VHOST_ROOT}/httpdocs"
 # Default values
 SITE_NAME="${DOMAIN}"
 SITE_TITLE="Maintenance in progress"
-DESCRIPTION="We are experts in LMS configuration, maintenance, updates, and technical support. We are currently optimizing this server to provide you with the best e-learning experience. We'll be back online shortly."
-CORPORATE_SITE_URL="https://${DOMAIN}"
+DESCRIPTION="We are LMS Doctor—experts in the configuration, maintenance, updates, and technical support of LMS systems. We are currently optimizing this server to provide you with the best e-learning experience. We will be back online shortly."
+CORPORATE_SITE_URL="https://lmsdoctor.com"
 VISIT_CORPORATE_SITE_TEXT="Visit our main site"
 UNDER_CONSTRUCTION_IMAGE_URL="https://${DOMAIN}"
 CURRENT_YEAR="$(date +%Y)"
-CORPORATE_SITE_NAME="${DOMAIN}"
+CORPORATE_SITE_NAME="by LMS Doctor"
 
 # Allow user overrides via env vars if set
 [[ -n "${MAINT_SITE_NAME:-}" ]] && SITE_NAME="$MAINT_SITE_NAME"
