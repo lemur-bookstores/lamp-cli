@@ -53,6 +53,7 @@ GLOBAL OPTIONS (all optional — will prompt if not provided):
     --ftp-pass        PASS       FTP/SFTP password
     --php-handler     fpm|mod    PHP handler mode                (default: fpm)
     --vhost-root      PATH       Absolute DocumentRoot path      (default: /var/www/vhosts/DOMAIN)
+    --vhost-port      PORT       Virtual host port               (default: 80)
     --mariadb-ratio   PERCENT    InnoDB buffer % of RAM 50-70 (default: 60)
 
 PHASE SELECTION:
@@ -146,6 +147,7 @@ while [[ $# -gt 0 ]]; do
         --mariadb-ratio)  export MARIADB_BUFFER_RATIO="$2"; shift 2 ;;
         --php-handler)    export PHP_HANDLER="$2";          shift 2 ;;
         --vhost-root)     export VHOST_ROOT="$2";           shift 2 ;;
+        --vhost-port)     export VHOST_PORT="$2";           shift 2 ;;
         --phases)         SELECTED_PHASES="$2";             shift 2 ;;
         -h|--help)        usage ;;
         *) log_error "Unknown option: $1"; echo "Run with --help for usage."; exit 1 ;;
