@@ -124,9 +124,9 @@ if [[ -d "${INSTALL_DIR}/lib" ]]; then
     }
 fi
 
-if [[ -d "${INSTALL_DIR}/wsl-port_proxy" ]]; then
-    find "${INSTALL_DIR}/wsl-port_proxy" -name "*.sh" -exec chmod +x {} \; || {
-        log_error "Failed to chmod wsl-port_proxy scripts"
+if [[ -d "${INSTALL_DIR}/tools" ]]; then
+    find "${INSTALL_DIR}/tools" -name "*.sh" -exec chmod +x {} \; || {
+        log_error "Failed to chmod tools scripts"
         exit 1
     }
 fi

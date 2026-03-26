@@ -10,18 +10,85 @@
 #   sudo lamp-cli --phases 4,5
 # ============================================================
 
+
 set -euo pipefail
+
+# ── Usage / help ──────────────────────────────────────────────
+usage() {
+    cat <<EOF
+
+${BOLD}LAMP Stack CLI Installer — Ubuntu 22.04 LTS${RESET}
+
+USAGE:
+    sudo lamp-cli [OPTIONS] [--phases PHASE_LIST]
+    sudo lamp-cli <subcommand> [args]
+
+${BOLD}SUBCOMMANDS:${RESET}
+    portproxy               WSL2 ↔ Windows port proxy manager
+
+    portproxy options:
+        -p <port>             Forward the specified port  (default: 80)
+        -l                    List all active port proxies
+        -d                    Delete proxy for the specified port
+        -h                    Show portproxy help
+
+    Examples:
+        sudo lamp-cli portproxy                  # Forward port 80
+        sudo lamp-cli portproxy -p 3000          # Forward port 3000
+        sudo lamp-cli portproxy -l               # List active proxies
+        sudo lamp-cli portproxy -p 8080 -d       # Remove port 8080
+
+${BOLD}GLOBAL OPTIONS:${RESET}
+
+GLOBAL OPTIONS (all optional — will prompt if not provided):
+    --domain          DOMAIN     Primary domain, no www (e.g. site.com)
+    --admin-email     EMAIL      Admin email for Certbot SSL notices
+    --db-name         DB_NAME    Database name
+    --db-user         DB_USER    Database username
+    --db-pass         DB_PASS    Database password
+    --php-version     VERSION    PHP version to install       (default: 8.2)
+    --swap-size       SIZE       Swap file size               (default: 4G)
+    --ftp-mode        ftps|sftp  File transfer mode           (default: ftps)
+    --ftp-user        USER       FTP/SFTP username
+    --ftp-pass        PASS       FTP/SFTP password
+    --php-handler     fpm|mod    PHP handler mode                (default: fpm)
+    --vhost-root      PATH       Absolute DocumentRoot path      (default: /var/www/vhosts/DOMAIN)
+    --mariadb-ratio   PERCENT    InnoDB buffer % of RAM 50-70 (default: 60)
+
+PHASE SELECTION:
+    --phases  LIST    Comma-separated phase numbers, or "all"
+                                        e.g. --phases 1,2,3   or   --phases all
+
+AVAILABLE PHASES:
+    1  Pre-Flight Checks
+    2  System Preparation       (swap, apt update/upgrade)
+    3  LAMP Stack Installation  (Apache, PHP, MariaDB, Certbot, VSFTPD)
+    4  Virtual Host             (directories, vhost config, permissions)
+    5  Database                 (harden MariaDB, create DB + user)
+    6  SSL Certificate          (Let's Encrypt via Certbot)
+    7  PHP Performance Tuning   (php.ini optimizations)
+    8  MariaDB Performance Tuning
+    9  File Transfer Service    (FTPS via VSFTPD or SFTP)
+
+EXAMPLES:
+    sudo lamp-cli
+    sudo lamp-cli --domain example.com --php-version 8.2 --phases all
+    sudo lamp-cli --phases 1,2,3 --swap-size 2G
+    sudo lamp-cli --domain site.com --db-name mydb --db-user myuser --phases 4,5
+
+EOF
+    exit 0
+}
 
 # Resolve the real script directory, even if called via symlink
 SOURCE="${BASH_SOURCE[0]}"
 while [ -L "$SOURCE" ]; do
-    DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
-    SOURCE="$(readlink "$SOURCE")"
-    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+        SOURCE="$(readlink "$SOURCE")"
+        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
-
 
 # ── Subcommand routing ────────────────────────────────────────
 # Allow: lamp-cli <subcommand> [args...]
@@ -31,89 +98,22 @@ source "${SCRIPT_DIR}/lib/common.sh"
 SUBCOMMAND="${1:-}"
 
 case "$SUBCOMMAND" in
-    portproxy)
-        shift  # remove 'portproxy' from args
-        PROXY_SCRIPT="${SCRIPT_DIR}/tools/wsl2-portproxy.sh"
+        portproxy)
+                shift  # remove 'portproxy' from args
+                PROXY_SCRIPT="${SCRIPT_DIR}/tools/wsl2-portproxy.sh"
 
-        if [[ ! -f "$PROXY_SCRIPT" ]]; then
-            log_error "Script not found: ${PROXY_SCRIPT}"
-            exit 1
-        fi
+                if [[ ! -f "$PROXY_SCRIPT" ]]; then
+                        log_error "Script not found: ${PROXY_SCRIPT}"
+                        exit 1
+                fi
 
-        chmod +x "$PROXY_SCRIPT"
-        exec bash "$PROXY_SCRIPT" "$@"
-        ;;
-    help|--help|-h)
-        usage
-        ;;
+                chmod +x "$PROXY_SCRIPT"
+                exec bash "$PROXY_SCRIPT" "$@"
+                ;;
+        help|--help|-h)
+                usage
+                ;;
 esac
-
-# ── Usage / help ──────────────────────────────────────────────
-usage() {
-    cat <<EOF
-
-${BOLD}LAMP Stack CLI Installer — Ubuntu 22.04 LTS${RESET}
-
-USAGE:
-  sudo lamp-cli [OPTIONS] [--phases PHASE_LIST]
-  sudo lamp-cli <subcommand> [args]
-
-${BOLD}SUBCOMMANDS:${RESET}
-  portproxy               WSL2 ↔ Windows port proxy manager
-
-  portproxy options:
-    -p <port>             Forward the specified port  (default: 80)
-    -l                    List all active port proxies
-    -d                    Delete proxy for the specified port
-    -h                    Show portproxy help
-
-  Examples:
-    sudo lamp-cli portproxy                  # Forward port 80
-    sudo lamp-cli portproxy -p 3000          # Forward port 3000
-    sudo lamp-cli portproxy -l               # List active proxies
-    sudo lamp-cli portproxy -p 8080 -d       # Remove port 8080
-
-${BOLD}GLOBAL OPTIONS:${RESET}
-
-GLOBAL OPTIONS (all optional — will prompt if not provided):
-  --domain          DOMAIN     Primary domain, no www (e.g. site.com)
-  --admin-email     EMAIL      Admin email for Certbot SSL notices
-  --db-name         DB_NAME    Database name
-  --db-user         DB_USER    Database username
-  --db-pass         DB_PASS    Database password
-  --php-version     VERSION    PHP version to install       (default: 8.2)
-  --swap-size       SIZE       Swap file size               (default: 4G)
-  --ftp-mode        ftps|sftp  File transfer mode           (default: ftps)
-  --ftp-user        USER       FTP/SFTP username
-  --ftp-pass        PASS       FTP/SFTP password
-  --php-handler     fpm|mod    PHP handler mode                (default: fpm)
-  --vhost-root      PATH       Absolute DocumentRoot path      (default: /var/www/vhosts/DOMAIN)
-  --mariadb-ratio   PERCENT    InnoDB buffer % of RAM 50-70 (default: 60)
-
-PHASE SELECTION:
-  --phases  LIST    Comma-separated phase numbers, or "all"
-                    e.g. --phases 1,2,3   or   --phases all
-
-AVAILABLE PHASES:
-  1  Pre-Flight Checks
-  2  System Preparation       (swap, apt update/upgrade)
-  3  LAMP Stack Installation  (Apache, PHP, MariaDB, Certbot, VSFTPD)
-  4  Virtual Host             (directories, vhost config, permissions)
-  5  Database                 (harden MariaDB, create DB + user)
-  6  SSL Certificate          (Let's Encrypt via Certbot)
-  7  PHP Performance Tuning   (php.ini optimizations)
-  8  MariaDB Performance Tuning
-  9  File Transfer Service    (FTPS via VSFTPD or SFTP)
-
-EXAMPLES:
-  sudo lamp-cli
-  sudo lamp-cli --domain example.com --php-version 8.2 --phases all
-  sudo lamp-cli --phases 1,2,3 --swap-size 2G
-  sudo lamp-cli --domain site.com --db-name mydb --db-user myuser --phases 4,5
-
-EOF
-    exit 0
-}
 
 # ── Phase metadata ─────────────────────────────────────────────
 declare -A PHASE_NAMES=(
