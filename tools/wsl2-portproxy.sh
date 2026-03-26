@@ -126,6 +126,16 @@ manage_apache_port() {
 detect_environment() {
     if grep -qi "microsoft" /proc/version 2>/dev/null || \
        grep -qi "wsl" /proc/version 2>/dev/null; then
+
+        # Detecta si está en mirrored mode
+        WSL_IP=$(hostname -I | awk '{print $1}')
+        GW=$(ip route show | grep default | awk '{print $3}')
+
+        # En mirrored mode la IP de WSL2 es de red real, no 172.x
+        if [[ "$WSL_IP" != 172.* ]]; then
+            echo "wsl2-mirrored"
+            return
+        fi
         echo "wsl2"
         return
     fi
@@ -134,12 +144,12 @@ detect_environment() {
 
 ENV_TYPE=$(detect_environment)
 
-# --- Linux native mode (no Windows proxy needed) ---
-if [[ "$ENV_TYPE" != "wsl2" ]]; then
+echo "$ENV_TYPE environment detected."
 
+# --- Linux native mode ---
+if [[ "$ENV_TYPE" == "linux" ]]; then
     echo -e "${YELLOW}[!] WSL2 environment not detected — running in Apache-only mode.${NC}"
     echo -e "${BLUE}[i] Port proxy (Windows/netsh) steps will be skipped.${NC}\n"
-
 
     if [ "$DELETE_MODE" = true ]; then
         manage_apache_port remove "$PORT"
@@ -150,8 +160,24 @@ if [[ "$ENV_TYPE" != "wsl2" ]]; then
     else
         manage_apache_port add "$PORT"
     fi
+    exit 0
+fi
 
-    exit 0  # Only one exit here
+# --- WSL2 Mirrored mode ---
+if [[ "$ENV_TYPE" == "wsl2-mirrored" ]]; then
+    echo -e "${YELLOW}[!] WSL2 Mirrored Network Mode detected.${NC}"
+    echo -e "${BLUE}[i] Port proxy is not needed — ports are directly accessible from Windows.${NC}\n"
+
+    if [ "$DELETE_MODE" = true ]; then
+        manage_apache_port remove "$PORT"
+        echo ""
+        manage_apache_port list
+    elif [ "$LIST_MODE" = true ]; then
+        manage_apache_port list
+    else
+        manage_apache_port add "$PORT"
+    fi
+    exit 0
 fi
 
 # --- WSL2 mode ---
