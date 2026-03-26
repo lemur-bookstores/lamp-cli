@@ -74,7 +74,7 @@ if [ "$DELETE_MODE" = true ]; then
     echo -e "\n $CMD_DEL_PROXY"
     echo -e "   $CMD_DEL_FW\n"
     echo -e "${YELLOW}[!] Or, from WSL2 (no sudo):${NC}"
-    echo -e "\n    powershell.exe -Command \"Start-Process powershell -ArgumentList \"$CMD_DEL_PROXY; $CMD_DEL_FW\" -Verb RunAs\"\n"
+    echo -e "\n    powershell.exe -Command \"Start-Process powershell -ArgumentList '$CMD_DEL_PROXY; $CMD_DEL_FW' -Verb RunAs\"\n"
     echo -e "${GREEN}[✓] Copy and paste the above commands in PowerShell as admin, or run the above line in WSL2 (no sudo).${NC}"
 else
     CMD_PROXY="netsh interface portproxy add v4tov4 listenport=$PORT listenaddress=0.0.0.0 connectport=$PORT connectaddress=$WSL_IP"
@@ -84,6 +84,8 @@ else
     echo -e "\n $CMD_PROXY"
     echo -e "   $CMD_FW\n"
     echo -e "${YELLOW}[!] Or, from WSL2 (no sudo):${NC}"
-    echo -e "\n    powershell.exe -Command \"Start-Process powershell -ArgumentList \"$CMD_PROXY; $CMD_FW\" -Verb RunAs\"\n"
+    # Escapar comillas dobles en el valor de name=
+    CMD_FW_ESCAPED="netsh advfirewall firewall add rule name=\"WSL2 Port $PORT\" dir=in action=allow protocol=TCP localport=$PORT"
+    echo -e "\n    powershell.exe -Command \"Start-Process powershell -ArgumentList '$CMD_PROXY; $CMD_FW_ESCAPED' -Verb RunAs\"\n"
     echo -e "${GREEN}[✓] Copy and paste the above commands in PowerShell as admin, or run the above line in WSL2 (no sudo).${NC}"
 fi
