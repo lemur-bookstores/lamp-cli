@@ -50,10 +50,10 @@ done
 
 # --- List Mode ---
 if [ "$LIST_MODE" = true ]; then
-    echo -e "${BLUE}[i] Fetching active Port Proxies from Windows...${NC}"
-    echo -e "${GREEN}------------------------------------------------------------${NC}"
-    powershell.exe -Command "netsh interface portproxy show v4tov4"
-    echo -e "${GREEN}------------------------------------------------------------${NC}"
+    echo -e "${BLUE}[i] To list active Port Proxies, run this in Windows PowerShell (as Administrator):${NC}"
+    echo -e "\n    netsh interface portproxy show v4tov4\n"
+    echo -e "${YELLOW}[!] Or, from WSL2 (no sudo):${NC}"
+    echo -e "\n    powershell.exe -Command \"netsh interface portproxy show v4tov4\"\n"
     exit 0
 fi
 
@@ -67,24 +67,17 @@ fi
 
 # --- Execution Logic ---
 if [ "$DELETE_MODE" = true ]; then
-    echo -e "${YELLOW}[!] Removing proxy and firewall rule for port $PORT...${NC}"
-
-    CMD_DEL_PROXY="netsh interface portproxy delete v4tov4 listenport=$PORT listenaddress=0.0.0.0"
-    CMD_DEL_FW="netsh advfirewall firewall delete rule name='WSL2 Port $PORT'"
-
-    powershell.exe -Command "Start-Process powershell -ArgumentList \"$CMD_DEL_PROXY; $CMD_DEL_FW\" -Verb RunAs"
-    echo -e "${GREEN}[✓] Deletion request sent to Windows.${NC}"
+    echo -e "${YELLOW}[!] To remove the proxy and firewall rule for port $PORT, copy and run this in Windows PowerShell (as Administrator):${NC}"
+    echo -e "\n    netsh interface portproxy delete v4tov4 listenport=$PORT listenaddress=0.0.0.0"
+    echo -e "    netsh advfirewall firewall delete rule name='WSL2 Port $PORT'\n"
+    echo -e "${YELLOW}[!] Or, from WSL2 (no sudo):${NC}"
+    echo -e "\n    powershell.exe -Command \"Start-Process powershell -ArgumentList 'netsh interface portproxy delete v4tov4 listenport=$PORT listenaddress=0.0.0.0; netsh advfirewall firewall delete rule name=\'WSL2 Port $PORT\'' -Verb RunAs\"\n"
+    echo -e "${GREEN}[✓] Copy and paste the above commands in PowerShell as admin, or run the above line in WSL2 (no sudo).${NC}"
 else
-    echo -e "${BLUE}[i] Mapping Windows:$PORT ➔ WSL2:$WSL_IP:$PORT${NC}"
-
-    CMD_PROXY="netsh interface portproxy add v4tov4 listenport=$PORT listenaddress=0.0.0.0 connectport=$PORT connectaddress=$WSL_IP"
-    CMD_FW="netsh advfirewall firewall add rule name='WSL2 Port $PORT' dir=in action=allow protocol=TCP localport=$PORT"
-
-    echo -e "${YELLOW}[!] Requesting Admin privileges...${NC}"
-    powershell.exe -Command "Start-Process powershell -ArgumentList \"$CMD_PROXY; $CMD_FW\" -Verb RunAs"
-
-    echo -e "${GREEN}============================================================${NC}"
-    echo -e "${GREEN}[✓] Success! Port $PORT is now exposed.${NC}"
-    echo -e "${BLUE}[i] Note: Check the Windows UAC popup to confirm.${NC}"
-    echo -e "${GREEN}============================================================${NC}"
+    echo -e "${BLUE}[i] To map Windows:$PORT ➔ WSL2:$WSL_IP:$PORT, copy and run these commands in Windows PowerShell (as Administrator):${NC}"
+    echo -e "\n    netsh interface portproxy add v4tov4 listenport=$PORT listenaddress=0.0.0.0 connectport=$PORT connectaddress=$WSL_IP"
+    echo -e "    netsh advfirewall firewall add rule name='WSL2 Port $PORT' dir=in action=allow protocol=TCP localport=$PORT\n"
+    echo -e "${YELLOW}[!] Or, from WSL2 (no sudo):${NC}"
+    echo -e "\n    powershell.exe -Command \"Start-Process powershell -ArgumentList 'netsh interface portproxy add v4tov4 listenport=$PORT listenaddress=0.0.0.0 connectport=$PORT connectaddress=$WSL_IP; netsh advfirewall firewall add rule name=\'WSL2 Port $PORT\' dir=in action=allow protocol=TCP localport=$PORT' -Verb RunAs\"\n"
+    echo -e "${GREEN}[✓] Copy and paste the above commands in PowerShell as admin, or run the above line in WSL2 (no sudo).${NC}"
 fi
