@@ -28,10 +28,21 @@ detect_environment() {
 ENV_TYPE=$(detect_environment)
 
 if [[ "$ENV_TYPE" != "wsl2" ]]; then
-    echo -e "${YELLOW}[!] This tool is designed for WSL2 environments only.${NC}"
-    echo -e "${YELLOW}    On native Linux servers, Apache ports are directly accessible.${NC}"
-    echo -e "${BLUE}[i] If you only need to add a port to Apache, run:${NC}"
-    echo -e "\n    sudo bash -c 'echo \"Listen $PORT\" >> /etc/apache2/ports.conf && service apache2 restart'\n"
+    echo -e "${YELLOW}[!] WSL2 environment not detected — running in Apache-only mode.${NC}"
+    echo -e "${BLUE}[i] Port proxy (Windows/netsh) steps will be skipped.${NC}\n"
+
+    if [ "$DELETE_MODE" = true ]; then
+        echo -e "${YELLOW}[!] Removing port $PORT from /etc/apache2/ports.conf...${NC}"
+        sed -i "/^Listen ${PORT}$/d" /etc/apache2/ports.conf
+        service apache2 restart
+        echo -e "${GREEN}[✓] Port $PORT removed and Apache restarted.${NC}"
+    elif [ "$LIST_MODE" = true ]; then
+        echo -e "${BLUE}[i] Ports currently registered in /etc/apache2/ports.conf:${NC}\n"
+        grep -E "^\s*Listen\s+[0-9]+\s*$" /etc/apache2/ports.conf
+    else
+        ensure_apache_port "$PORT"
+    fi
+
     exit 0
 fi
 
@@ -85,7 +96,15 @@ ensure_apache_port() {
     fi
 
     echo -e "${YELLOW}[!] Port $port not found in $conf. Adding...${NC}"
-    echo "Listen $port" >> "$conf"
+    # Inserta el nuevo puerto justo después de la última línea "Listen <número>" plain
+    last_listen_line=$(grep -nE "^\s*Listen\s+[0-9]+\s*$" "$conf" | tail -1 | cut -d: -f1)
+
+    if [[ -n "$last_listen_line" ]]; then
+        sed -i "${last_listen_line}a Listen ${port}" "$conf"
+    else
+        # No hay ningún Listen plain todavía, inserta al inicio del archivo
+        sed -i "1i Listen ${port}" "$conf"
+    fi
     echo -e "${GREEN}[✓] Port $port added to $conf.${NC}"
 
     # Validate config before restarting
