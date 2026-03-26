@@ -15,6 +15,26 @@ RED='\033[0;31m'
 PURPLE='\033[0;35m'
 NC='\033[0m'
 
+# --- Environment Detection ---
+detect_environment() {
+    if grep -qi "microsoft" /proc/version 2>/dev/null || \
+       grep -qi "wsl" /proc/version 2>/dev/null; then
+        echo "wsl2"
+        return
+    fi
+    echo "linux"
+}
+
+ENV_TYPE=$(detect_environment)
+
+if [[ "$ENV_TYPE" != "wsl2" ]]; then
+    echo -e "${YELLOW}[!] This tool is designed for WSL2 environments only.${NC}"
+    echo -e "${YELLOW}    On native Linux servers, Apache ports are directly accessible.${NC}"
+    echo -e "${BLUE}[i] If you only need to add a port to Apache, run:${NC}"
+    echo -e "\n    sudo bash -c 'echo \"Listen $PORT\" >> /etc/apache2/ports.conf && service apache2 restart'\n"
+    exit 0
+fi
+
 # --- Ensure netstat (net-tools) is installed ---
 if ! command -v netstat >/dev/null 2>&1; then
     echo -e "${YELLOW}[!] net-tools not installed. Installing...${NC}"
