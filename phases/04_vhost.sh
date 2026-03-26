@@ -16,6 +16,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             --php-version) export PHP_VERSION="$2"; shift 2 ;;
             --php-handler) export PHP_HANDLER="$2"; shift 2 ;;
             --vhost-root)  export VHOST_ROOT="$2";  shift 2 ;;
+            --vhost-port)  export VHOST_PORT="$2";  shift 2 ;;
             *) shift ;;
         esac
     done
@@ -26,6 +27,7 @@ ask_param          DOMAIN      "Primary domain (no www)"           ""
 ask_param_optional PHP_VERSION "PHP version (must match Phase 3)"  "8.2"
 ask_param_optional PHP_HANDLER "PHP handler (fpm or mod)"          "fpm"
 ask_param_optional VHOST_ROOT  "Document root (absolute path)"     "/var/www/vhosts/${DOMAIN}"
+ask_param_optional VHOST_PORT  "Virtual host port"                  "80"
 
 VHOST_CONF="/etc/apache2/sites-available/${DOMAIN}.conf"
 
@@ -53,7 +55,7 @@ else
 fi
 
 sudo tee "${VHOST_CONF}" > /dev/null <<APACHECONF
-<VirtualHost *:80>
+<VirtualHost *:${VHOST_PORT}>
     ServerName ${DOMAIN}
     ServerAlias www.${DOMAIN}
     DocumentRoot ${VHOST_ROOT}/httpdocs

@@ -53,13 +53,14 @@ chmod +x init.sh phases/*.sh
 | `--db-pass`        | `DB_PASS`            | —        | Database password (hidden prompt)        |
 | `--php-version`    | `PHP_VERSION`        | `8.2`    | PHP version to install                   |
 | `--php-handler`    | `PHP_HANDLER`        | `fpm`    | PHP handler: `fpm` or `mod`              |
-| `--vhost-root`     | `VHOST_ROOT`         | `/var/www/vhosts/DOMAIN` | Absolute DocumentRoot |
+| `--vhost-root`     | `VHOST_ROOT`         | `/var/www/vhosts/DOMAIN` | Absolute DocumentRoot    |
 | `--swap-size`      | `SWAP_SIZE`          | `4G`     | Swap file size                           |
 | `--ftp-mode`       | `FTP_MODE`           | `ftps`   | Transfer mode: `ftps` or `sftp`          |
 | `--ftp-user`       | `FTP_USER`           | —        | FTP/SFTP username                        |
 | `--ftp-pass`       | `FTP_PASS`           | —        | FTP/SFTP password (hidden prompt)        |
-| `--mariadb-ratio`  | `MARIADB_BUFFER_RATIO` | `60`   | InnoDB buffer % of RAM (50–70)          |
-| `--phases`         | —                    | (menu)   | Phases to run, e.g. `1,2,3` or `all`   |
+| `--mariadb-ratio`  | `MARIADB_BUFFER_RATIO` | `60`   | InnoDB buffer % of RAM (50–70)           |
+| `--phases`         | —                    | (menu)   | Phases to run, e.g. `1,2,3` or `all`     |
+| `--vhost-port`     | `VHOST_PORT`          | `80`      | Virtual host port (for custom Apache port)         |
 
 > Any omitted parameter triggers an **interactive prompt**. Password parameters always use hidden input with confirmation.
 
@@ -210,6 +211,8 @@ sudo ./phases/04_vhost.sh \
   --domain      training.example.com \
   --php-version 8.2 \
   --php-handler fpm
+  --vhost-root path
+  --vhost-port 80
 ```
 
 **Result:**
