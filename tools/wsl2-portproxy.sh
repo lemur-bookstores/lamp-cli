@@ -142,9 +142,62 @@ detect_environment() {
     echo "linux"
 }
 
+# --- Ensure WSL2 Mirrored Mode is configured ---
+ensure_wsl_mirrored_config() {
+    # Get Windows username dynamically
+    local win_user
+    win_user=$(powershell.exe -Command "echo \$env:USERNAME" 2>/dev/null | tr -d '\r')
+
+    if [[ -z "$win_user" ]]; then
+        echo -e "${YELLOW}[!] Could not detect Windows username — skipping .wslconfig check.${NC}"
+        return 0
+    fi
+
+    local wslconfig="/mnt/c/Users/${win_user}/.wslconfig"
+
+    # Already has mirrored mode configured
+    if [[ -f "$wslconfig" ]] && grep -q "networkingMode=mirrored" "$wslconfig"; then
+        echo -e "${GREEN}[✓] WSL2 mirrored mode already configured in $wslconfig.${NC}"
+        return 0
+    fi
+
+    # File exists but doesn't have mirrored mode
+    if [[ -f "$wslconfig" ]]; then
+        echo -e "${YELLOW}[!] $wslconfig exists but networkingMode=mirrored is missing. Adding...${NC}"
+        # Adds under [wsl2] section if it exists, otherwise appends
+        if grep -q "\[wsl2\]" "$wslconfig"; then
+            sed -i '/\[wsl2\]/a networkingMode=mirrored' "$wslconfig"
+        else
+            echo -e "\n[wsl2]\nnetworkingMode=mirrored" >> "$wslconfig"
+        fi
+        echo -e "${GREEN}[✓] networkingMode=mirrored added to $wslconfig.${NC}"
+    else
+        # File doesn't exist — create it
+        echo -e "${YELLOW}[!] $wslconfig not found. Creating with mirrored mode...${NC}"
+        printf "[wsl2]\nnetworkingMode=mirrored\n" > "$wslconfig"
+        echo -e "${GREEN}[✓] $wslconfig created with networkingMode=mirrored.${NC}"
+    fi
+
+    echo -e "${BLUE}[i] Restart WSL2 to apply: run 'wsl --shutdown' in PowerShell then reopen WSL2.${NC}"
+
+    # Ask user if they want to restart now
+    read -r -p "  Restart WSL2 now to apply mirrored mode? [y/N]: " restart
+    if [[ "${restart,,}" == "y" ]]; then
+        echo -e "${YELLOW}[!] Shutting down WSL2...${NC}"
+        powershell.exe -Command "wsl --shutdown" 2>/dev/null
+        echo -e "${RED}[!] WSL2 is shutting down. Please reopen your terminal and re-run the command.${NC}"
+        exit 0
+    fi
+}
+
 ENV_TYPE=$(detect_environment)
 
 echo "$ENV_TYPE environment detected."
+
+# ── Ensure mirrored mode is configured (WSL2 only) ──────
+if [[ "$ENV_TYPE" == "wsl2" || "$ENV_TYPE" == "wsl2-mirrored" ]]; then
+    ensure_wsl_mirrored_config
+fi
 
 # --- Linux native mode ---
 if [[ "$ENV_TYPE" == "linux" ]]; then
@@ -179,8 +232,6 @@ if [[ "$ENV_TYPE" == "wsl2-mirrored" ]]; then
     fi
     exit 0
 fi
-
-# --- WSL2 mode ---
 
 # --- Ensure netstat (net-tools) is installed ---
 if ! command -v netstat >/dev/null 2>&1; then
